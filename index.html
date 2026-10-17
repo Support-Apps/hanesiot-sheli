@@ -37,8 +37,9 @@ h2{font-size:18px;font-weight:700;margin-bottom:14px}
 .kpi b{font-size:22px;font-weight:700}
 label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
 input,select{width:100%;font:inherit;font-size:16px;min-height:48px;padding:0 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+input,select{min-width:0;max-width:100%}input[type=time]{-webkit-appearance:none;appearance:none;text-align:right;display:block}input::-webkit-date-and-time-value{text-align:right}
 input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:1px}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:10px}.row>div{min-width:0}
 .btn{font:inherit;font-weight:700;min-height:52px;border-radius:12px;border:1.5px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;padding:0 18px;width:100%;font-size:16px}
 .btn.ghost{background:#fff;color:var(--ink)}
 .btn.sm{min-height:40px;width:auto;font-size:14px;padding:0 14px}
@@ -66,7 +67,7 @@ details .in{padding:4px 0 16px}
 .res{margin-top:12px;font-size:15px}
 .res b{font-size:18px}
 @media(max-width:380px){.hero b{font-size:46px}.shift{grid-template-columns:1fr}}
-@media print{.noprint,.seg{display:none!important}.wrap{max-width:none}section{break-inside:avoid}}
+@media print{.noprint,.seg,#logger,#gold,#tools,#fuel,.mini,#hours,#goal{display:none!important}.wrap{max-width:none}section{break-inside:avoid}}
 </style>
 </head>
 <body>
@@ -98,9 +99,11 @@ details .in{padding:4px 0 16px}
     <div class="kpi"><small>ממוצע לנסיעה</small><b id="ka">0 ₪</b></div>
     <div class="kpi"><small>ממוצע לשעה</small><b id="kh">—</b></div>
     <div class="kpi"><small>טיפים היום</small><b id="kt">0 ₪</b></div>
+    <div class="kpi"><small>שריפת דלק משוערת</small><b id="kb">0 ₪</b></div>
+    <div class="kpi"><small>תדלוק היום</small><b id="kf">0 ₪</b></div>
   </div>
   <div class="row blk">
-    <div><label for="hours">שעות עבודה היום</label><input id="hours" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
+    <div><label for="hours">שעות עבודה (ידני, אם אין רישום)</label><input id="hours" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
     <div><label for="goal">יעד יומי (₪)</label><input id="goal" type="number" inputmode="numeric" min="0"></div>
   </div>
 </section>
@@ -109,7 +112,7 @@ details .in{padding:4px 0 16px}
   <h2>הוספת נסיעה</h2>
   <div class="row">
     <div><label for="type">סוג נסיעה</label>
-      <select id="type"><option>נתב"ג / ארוכה</option><option>Gett / מודדים</option><option>רחוב / מזומן</option><option>פרטי</option></select></div>
+      <select id="type"><option>נתב"ג / ארוכה</option><option>Gett / מונה</option><option>רחוב / מזומן</option><option>פרטי</option></select></div>
     <div><label for="pay">אמצעי תשלום</label>
       <select id="pay"><option>אשראי</option><option>מזומן</option><option>Gett</option><option>חשבון</option></select></div>
   </div>
@@ -119,9 +122,35 @@ details .in{padding:4px 0 16px}
   </div>
   <div class="row">
     <div><label for="time">שעה</label><input id="time" type="time"></div>
-    <div><label for="note">הערה</label><input id="note" type="text" maxlength="60" placeholder="אופציונלי"></div>
+    <div><label for="km">ק"מ (לחישוב דלק)</label><input id="km" type="number" inputmode="decimal" min="0" placeholder="0"></div>
   </div>
+  <div style="margin-bottom:10px"><label for="note">הערה</label><input id="note" type="text" maxlength="60" placeholder="אופציונלי"></div>
   <div class="acts"><button class="btn" id="add">הוסף נסיעה</button><button class="btn ghost" id="cancel" hidden>בטל עריכה</button></div>
+</section>
+
+<section id="shifts">
+  <h2>שעות עבודה ומנוחה</h2>
+  <div class="kpis" style="margin:0 0 14px">
+    <div class="kpi"><small>עבודה היום</small><b id="sw">0:00</b></div>
+    <div class="kpi"><small>מנוחה היום</small><b id="sr">0:00</b></div>
+  </div>
+  <div class="acts noprint">
+    <button class="btn" id="qwork">התחל עבודה עכשיו</button>
+    <button class="btn ghost" id="qrest">התחל מנוחה עכשיו</button>
+  </div>
+  <details class="noprint" style="margin-top:12px"><summary>הוספה ידנית</summary>
+    <div class="in">
+      <div class="row">
+        <div><label for="stype">סוג</label><select id="stype"><option value="work">עבודה</option><option value="rest">מנוחה</option></select></div>
+        <div><label for="sfrom">משעה</label><input id="sfrom" type="time"></div>
+      </div>
+      <div class="row">
+        <div><label for="sto">עד שעה (ריק = עדיין פעיל)</label><input id="sto" type="time"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" id="sadd">הוסף</button></div>
+      </div>
+    </div>
+  </details>
+  <div class="scroll" id="shl" style="margin-top:12px"></div>
 </section>
 </div>
 
@@ -143,21 +172,42 @@ details .in{padding:4px 0 16px}
 </section>
 </div>
 
+<section class="full" id="fuel">
+  <h2>דלק</h2>
+  <div class="grid" style="gap:0 40px">
+  <div>
+    <h3 style="font-size:16px;margin-bottom:10px">שריפת דלק יומית</h3>
+    <div class="row">
+      <div><label for="fkpl">ק"מ לליטר</label><input id="fkpl" type="number" inputmode="decimal" step="0.1"></div>
+      <div><label for="fpr">מחיר לליטר (₪)</label><input id="fpr" type="number" inputmode="decimal" step="0.01"></div>
+    </div>
+    <div class="row">
+      <div><label for="fex">ק"מ נוספים היום (ריקים)</label><input id="fex" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+      <div></div>
+    </div>
+    <div class="res" id="fres"></div>
+  </div>
+  <div>
+    <h3 style="font-size:16px;margin:0 0 10px">תדלוק</h3>
+    <div class="row">
+      <div><label for="famt">סכום תדלוק (₪)</label><input id="famt" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+      <div><label for="fl">ליטרים (אופציונלי)</label><input id="fl" type="number" inputmode="decimal" min="0" placeholder="0"></div>
+    </div>
+    <button class="btn" id="fadd">הוסף תדלוק</button>
+    <div class="scroll" id="fuels" style="margin-top:12px"></div>
+  </div>
+  </div>
+</section>
+
 <section class="full" id="tools">
   <h2>כלים</h2>
   <div class="acts noprint" style="margin-bottom:14px">
     <button class="btn ghost" id="newday">איפוס יום חדש</button>
-    <button class="btn ghost" id="csv">ייצוא CSV</button>
-    <button class="btn ghost" id="print">הדפסת דוח</button>
+    <button class="btn ghost" id="pdf">ייצוא PDF</button>
+    <button class="btn ghost" id="shWa">שיתוף בוואטסאפ</button>
+    <button class="btn ghost" id="shMail">שיתוף במייל</button>
   </div>
-  <details class="noprint"><summary>מחשבון דלק יומי</summary>
-    <div class="in">
-      <div class="row"><div><label for="fkm">ק"מ ביום</label><input id="fkm" type="number" inputmode="decimal"></div>
-      <div><label for="fkpl">ק"מ לליטר</label><input id="fkpl" type="number" inputmode="decimal"></div></div>
-      <div class="row"><div><label for="fpr">מחיר לליטר (₪)</label><input id="fpr" type="number" inputmode="decimal" step="0.01"></div><div></div></div>
-      <div class="res" id="fres"></div>
-    </div>
-  </details>
+  
 </section>
 
 <section class="full" id="gold">
@@ -205,8 +255,9 @@ const keyOf=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const num=v=>parseFloat(v)||0;
 const today=()=>keyOf(new Date());
-const day=k=>S.days[k]||{trips:[],hours:0,manual:null};
-const ensure=k=>S.days[k]=S.days[k]||{trips:[],hours:0,manual:null};
+const blank=()=>({trips:[],hours:0,manual:null,fuels:[],extraKm:0,shifts:[]});
+const day=k=>S.days[k]||blank();
+const ensure=k=>S.days[k]=S.days[k]||blank();
 const sum=d=>d.trips.length?d.trips.reduce((a,t)=>a+t.amt+t.tip,0):(d.manual||0);
 const nowTime=()=>{const d=new Date();return pad(d.getHours())+':'+pad(d.getMinutes())};
 
@@ -223,32 +274,50 @@ function render(){
   const pm=mg?mt/mg*100:0;$('#pm').style.width=Math.min(pm,100)+'%';$('#pmt').textContent=Math.round(pm)+'%';$('#mtot').textContent=fmt(mt);
   const n=d.trips.length, tips=d.trips.reduce((a,x)=>a+x.tip,0);
   $('#kn').textContent=n;$('#ka').textContent=n?fmt(tot/n)+' ₪':'—';
-  $('#kh').textContent=d.hours>0?fmt(tot/d.hours)+' ₪':'—';$('#kt').textContent=fmt(tips)+' ₪';
+  const wh=workHours(d);$('#kh').textContent=wh>0?fmt(tot/wh)+' ₪':'—';$('#kt').textContent=fmt(tips)+' ₪';
   if(document.activeElement!==$('#hours'))$('#hours').value=d.hours||'';
   if(document.activeElement!==$('#goal'))$('#goal').value=g;
-  renderTrips();renderWeek();renderFuel(tot);
+  renderTrips();renderWeek();renderFuel(tot);renderShifts();
 }
 
+const toMin=h=>{const a=h.split(':').map(Number);return a[0]*60+a[1]};
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const dur=x=>{if(!x.from)return 0;const st=toMin(x.from);let e=x.to?toMin(x.to):nowMin();if(e<st)e+=1440;return e-st};
+const hm=m=>Math.floor(m/60)+':'+pad(m%60);
+function shiftTotals(d){let w=0,r=0;(d.shifts||[]).forEach(x=>{if(x.type==='rest')r+=dur(x);else w+=dur(x)});return{w,r}}
+const workHours=d=>{const t=shiftTotals(d);return t.w>0?t.w/60:(d.hours||0)};
+function renderShifts(){
+  const d=day(today()),t=shiftTotals(d),sh=d.shifts||[];
+  $('#sw').textContent=hm(t.w);$('#sr').textContent=hm(t.r);
+  $('#shl').innerHTML=sh.length?'<table><thead><tr><th>סוג</th><th>שעות</th><th>משך</th><th></th></tr></thead><tbody>'+
+    sh.map(x=>`<tr><td>${x.type==='rest'?'מנוחה':'עבודה'}</td><td>${x.from}–${x.to||'פעיל'}</td><td><b>${hm(dur(x))}</b></td><td style="white-space:nowrap">${x.to?'':`<button class="mini" data-end="${x.id}">סיים עכשיו</button>`}<button class="mini" data-sd="${x.id}">מחק</button></td></tr>`).join('')+'</tbody></table>'
+    :'<div class="empty">עוד לא נרשמו שעות היום. לחץ "התחל עבודה עכשיו".</div>';
+}
+function startSeg(type,from,to){
+  const d=ensure(today());d.shifts=d.shifts||[];
+  if(!to)d.shifts.forEach(x=>{if(!x.to)x.to=from});
+  d.shifts.push({id:Date.now(),type,from,to:to||''});save();render();
+}
 function renderTrips(){
   const tr=day(today()).trips;
   if(!tr.length){$('#tripsBox').innerHTML='<div class="empty">עוד אין נסיעות היום. הוסף את הנסיעה הראשונה.</div>';return}
   $('#tripsBox').innerHTML='<table><thead><tr><th>שעה</th><th>סוג</th><th>סכום</th><th></th></tr></thead><tbody>'+
-  tr.slice().reverse().map(x=>`<tr><td>${esc(x.time||'')}</td><td>${esc(x.type)}<br><small style="color:var(--mute)">${esc(x.pay)}${x.note?' · '+esc(x.note):''}</small></td><td><b>${fmt(x.amt+x.tip)} ₪</b>${x.tip?`<br><small style="color:var(--mute)">טיפ ${fmt(x.tip)}</small>`:''}</td><td style="white-space:nowrap"><button class="mini" data-e="${x.id}">ערוך</button><button class="mini" data-d="${x.id}">מחק</button></td></tr>`).join('')+'</tbody></table>';
+  tr.slice().reverse().map(x=>`<tr><td>${esc(x.time||'')}</td><td>${esc(x.type)}<br><small style="color:var(--mute)">${esc(x.pay)}${x.note?' · '+esc(x.note):''}${x.km?' · '+x.km+' ק"מ':''}</small></td><td><b>${fmt(x.amt+x.tip)} ₪</b>${x.tip?`<br><small style="color:var(--mute)">טיפ ${fmt(x.tip)}</small>`:''}</td><td style="white-space:nowrap"><button class="mini" data-e="${x.id}">ערוך</button><button class="mini" data-d="${x.id}">מחק</button></td></tr>`).join('')+'</tbody></table>';
 }
 $('#tripsBox').onclick=e=>{
   const t=today(),d=ensure(t);
   if(e.target.dataset.d){if(confirm('למחוק את הנסיעה?')){d.trips=d.trips.filter(x=>x.id!=e.target.dataset.d);save();render()}}
   if(e.target.dataset.e){const x=d.trips.find(x=>x.id==e.target.dataset.e);if(!x)return;editId=x.id;
-    $('#type').value=x.type;$('#pay').value=x.pay;$('#amt').value=x.amt||'';$('#tip').value=x.tip||'';$('#time').value=x.time;$('#note').value=x.note;
+    $('#type').value=x.type;$('#pay').value=x.pay;$('#amt').value=x.amt||'';$('#tip').value=x.tip||'';$('#time').value=x.time;$('#note').value=x.note;$('#km').value=x.km||'';
     $('#add').textContent='שמור שינויים';$('#cancel').hidden=false;$('#logger').scrollIntoView({behavior:'smooth'})}
 };
-function resetForm(){editId=null;$('#amt').value='';$('#tip').value='';$('#note').value='';$('#time').value=nowTime();$('#add').textContent='הוסף נסיעה';$('#cancel').hidden=true}
+function resetForm(){editId=null;$('#amt').value='';$('#tip').value='';$('#note').value='';$('#km').value='';$('#time').value=nowTime();$('#add').textContent='הוסף נסיעה';$('#cancel').hidden=true}
 $('#cancel').onclick=resetForm;
 $('#add').onclick=()=>{
   const amt=num($('#amt').value), tip=num($('#tip').value);
   if(amt<=0&&tip<=0){$('#amt').focus();return}
   const d=ensure(today());
-  const rec={id:editId||Date.now(),type:$('#type').value,pay:$('#pay').value,amt,tip,time:$('#time').value,note:$('#note').value.trim()};
+  const rec={id:editId||Date.now(),type:$('#type').value,pay:$('#pay').value,amt,tip,km:num($('#km').value),time:$('#time').value,note:$('#note').value.trim()};
   if(editId){d.trips=d.trips.map(x=>x.id==editId?rec:x)}else d.trips.push(rec);
   save();resetForm();render();
 };
@@ -274,27 +343,83 @@ $('#wb').addEventListener('change',e=>{
 $('#hours').oninput=e=>{ensure(today()).hours=num(e.target.value);save();render()};
 $('#goal').onchange=e=>{const v=num(e.target.value);if(v>0){S.goal=v;save();render()}};
 
-function renderFuel(tot){
-  const f=S.fuel, cost=f.kpl>0?f.km/f.kpl*f.price:0;
-  $('#fres').innerHTML=`עלות דלק משוערת: <b>${fmt(cost)} ₪</b><br>הכנסה נטו אחרי דלק היום: <b>${fmt(tot-cost)} ₪</b>`;
+function fuelCalc(d){
+  const km=d.trips.reduce((a,x)=>a+(x.km||0),0)+(d.extraKm||0), tk=km-(d.extraKm||0);
+  const liters=S.fuel.kpl>0?km/S.fuel.kpl:0, burn=liters*S.fuel.price;
+  const filled=(d.fuels||[]).reduce((a,f)=>a+f.amt,0);
+  return {km,tk,liters,burn,filled};
 }
-[['fkm','km'],['fkpl','kpl'],['fpr','price']].forEach(([id,k])=>{
+function renderFuel(tot){
+  const t=today(),d=day(t),c=fuelCalc(d),fl=d.fuels||[];
+  let mf=0;for(const k in S.days)if(k.startsWith(t.slice(0,7)))mf+=(S.days[k].fuels||[]).reduce((a,f)=>a+f.amt,0);
+  $('#kb').textContent=fmt(c.burn)+' ₪';$('#kf').textContent=fmt(c.filled)+' ₪';
+  if(document.activeElement!==$('#fex'))$('#fex').value=d.extraKm||'';
+  const net=tot-c.burn;
+  $('#fres').innerHTML=(c.km>0
+    ?`ק"מ היום: <b>${fmt(c.km)}</b> <small style="color:var(--mute)">(נסיעות ${fmt(c.tk)} + נוספים ${fmt(d.extraKm||0)})</small><br>
+      צריכה משוערת: <b>${c.liters.toFixed(1)} ליטר</b><br>
+      שריפת דלק משוערת: <b>${fmt(c.burn)} ₪</b><br>
+      הכנסה נטו אחרי שריפה: <b class="${net>=0?'pos':'neg'}">${fmt(net)} ₪</b>`
+    :'הזן ק"מ בנסיעות (או ק"מ נוספים) כדי לחשב שריפת דלק.')
+    +`<br><br>תדלוק בפועל היום: <b>${fmt(c.filled)} ₪</b><br>תדלוק החודש: <b>${fmt(mf)} ₪</b>`;
+  $('#fuels').innerHTML=fl.length?'<table><thead><tr><th>שעה</th><th>סכום</th><th>ליטרים</th><th></th></tr></thead><tbody>'+
+    fl.slice().reverse().map(f=>`<tr><td>${esc(f.time||'')}</td><td><b>${fmt(f.amt)} ₪</b></td><td>${f.liters?f.liters:'—'}</td><td><button class="mini" data-fd="${f.id}">מחק</button></td></tr>`).join('')+'</tbody></table>'
+    :'<div class="empty">עוד לא נרשם תדלוק היום.</div>';
+}
+[['fkpl','kpl'],['fpr','price']].forEach(([id,k])=>{
   $('#'+id).value=S.fuel[k];
-  $('#'+id).oninput=e=>{S.fuel[k]=num(e.target.value);save();renderFuel(sum(day(today())))};
+  $('#'+id).oninput=e=>{S.fuel[k]=num(e.target.value);save();render()};
 });
+$('#fex').oninput=e=>{ensure(today()).extraKm=num(e.target.value);save();render()};
+$('#fadd').onclick=()=>{
+  const amt=num($('#famt').value),l=num($('#fl').value);
+  if(amt<=0){$('#famt').focus();return}
+  const d=ensure(today());d.fuels=d.fuels||[];d.fuels.push({id:Date.now(),amt,liters:l,time:nowTime()});
+  if(l>0){S.fuel.price=Math.round(amt/l*100)/100;$('#fpr').value=S.fuel.price}
+  $('#famt').value='';$('#fl').value='';save();render();
+};
+$('#fuels').onclick=e=>{
+  const id=e.target.dataset.fd;if(!id||!confirm('למחוק את התדלוק?'))return;
+  const d=ensure(today());d.fuels=(d.fuels||[]).filter(f=>f.id!=id);save();render();
+};
+
+$('#qwork').onclick=()=>startSeg('work',nowTime(),'');
+$('#qrest').onclick=()=>startSeg('rest',nowTime(),'');
+$('#sfrom').value=nowTime();
+$('#sadd').onclick=()=>{
+  const from=$('#sfrom').value;if(!from){$('#sfrom').focus();return}
+  startSeg($('#stype').value,from,$('#sto').value);$('#sto').value='';$('#sfrom').value=nowTime();
+};
+$('#shl').onclick=e=>{
+  const d=ensure(today());d.shifts=d.shifts||[];
+  if(e.target.dataset.end){const x=d.shifts.find(x=>x.id==e.target.dataset.end);if(x){x.to=nowTime();save();render()}}
+  if(e.target.dataset.sd&&confirm('למחוק את הרישום?')){d.shifts=d.shifts.filter(x=>x.id!=e.target.dataset.sd);save();render()}
+};
+setInterval(()=>{if(!document.hidden)render()},60000);
 
 $('#newday').onclick=()=>{
-  if(!confirm('לאפס את נסיעות היום ולהתחיל יום חדש? הנסיעות של היום יימחקו.'))return;
-  S.days[today()]={trips:[],hours:0,manual:null};save();resetForm();render();
+  if(!confirm('לאפס את היום ולהתחיל יום חדש? הנסיעות והתדלוקים של היום יימחקו.'))return;
+  S.days[today()]=blank();save();resetForm();render();
 };
-$('#print').onclick=()=>print();
-$('#csv').onclick=()=>{
-  const rows=[['תאריך','שעה','סוג','סכום','טיפ','תשלום','הערה']];
-  Object.keys(S.days).sort().forEach(k=>S.days[k].trips.forEach(x=>rows.push([k,x.time,x.type,x.amt,x.tip,x.pay,x.note])));
-  const csv='\ufeff'+rows.map(r=>r.map(c=>'"'+String(c??'').replace(/"/g,'""')+'"').join(',')).join('\n');
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
-  a.download='taxi-report-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();
-};
+function report(){
+  const t=today(),d=day(t),tot=sum(d),n=d.trips.length,tips=d.trips.reduce((a,x)=>a+x.tip,0);
+  let mt=0;for(const k in S.days)if(k.startsWith(t.slice(0,7)))mt+=sum(S.days[k]);
+  const L=['הנסיעות שלי – '+new Date().toLocaleDateString('he-IL'),'',
+    'הכנסה היום: '+fmt(tot)+' ₪ מתוך '+fmt(S.goal)+' ₪ ('+Math.round(S.goal?tot/S.goal*100:0)+'%)',
+    'נסיעות: '+n+(n?' | ממוצע לנסיעה: '+fmt(tot/n)+' ₪':''),
+    'טיפים: '+fmt(tips)+' ₪'];
+  const sw=shiftTotals(d),wh=workHours(d);
+  if(wh>0)L.push('שעות עבודה: '+(sw.w?hm(sw.w):wh)+(sw.r?' | מנוחה: '+hm(sw.r):'')+' | ממוצע לשעה: '+fmt(tot/wh)+' ₪');
+  const fc=fuelCalc(d);
+  if(fc.km>0)L.push('ק"מ: '+fmt(fc.km)+' | שריפת דלק משוערת: '+fmt(fc.burn)+' ₪ | נטו: '+fmt(tot-fc.burn)+' ₪');
+  if(fc.filled>0)L.push('תדלוק: '+fmt(fc.filled)+' ₪');
+  L.push('החודש: '+fmt(mt)+' ₪ מתוך '+fmt(S.goal*DAYS)+' ₪');
+  if(n){L.push('','פירוט נסיעות:');d.trips.forEach(x=>L.push((x.time||'--:--')+' '+x.type+' – '+fmt(x.amt+x.tip)+' ₪ ('+x.pay+')'+(x.note?' '+x.note:'')))}
+  return L.join('\n');
+}
+$('#pdf').onclick=()=>{const old=document.title;document.title='הנסיעות-שלי-'+today();print();document.title=old};
+$('#shWa').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(report()),'_blank');
+$('#shMail').onclick=()=>{location.href='mailto:?subject='+encodeURIComponent('הנסיעות שלי – '+new Date().toLocaleDateString('he-IL'))+'&body='+encodeURIComponent(report())};
 
 setView(S.view);resetForm();render();
 </script>
