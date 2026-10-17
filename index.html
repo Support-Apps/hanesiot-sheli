@@ -204,9 +204,18 @@ details .in{padding:4px 0 16px}
   <div class="acts noprint" style="margin-bottom:14px">
     <button class="btn ghost" id="newday">איפוס יום חדש</button>
     <button class="btn ghost" id="pdf">ייצוא PDF</button>
-    <button class="btn ghost" id="shWa">שיתוף בוואטסאפ</button>
-    <button class="btn ghost" id="shMail">שיתוף במייל</button>
+    <button class="btn ghost" id="shWa">דוח יומי בוואטסאפ</button>
+    <button class="btn ghost" id="shMail">דוח יומי במייל</button>
   </div>
+  <h3 class="noprint" style="font-size:16px;margin:22px 0 4px">גיבוי ושחזור</h3>
+  <p class="date noprint" id="bkInfo" style="margin-bottom:10px"></p>
+  <div class="acts noprint">
+    <button class="btn" id="bkDl">הורד גיבוי</button>
+    <button class="btn ghost" id="restore">שחזור מגיבוי</button>
+    <button class="btn ghost" id="bkWa">גיבוי בוואטסאפ</button>
+    <button class="btn ghost" id="bkMail">גיבוי במייל</button>
+  </div>
+  <input type="file" id="rfile" accept=".json,application/json,text/plain" hidden>
   
 </section>
 
@@ -277,7 +286,7 @@ function render(){
   const wh=workHours(d);$('#kh').textContent=wh>0?fmt(tot/wh)+' ₪':'—';$('#kt').textContent=fmt(tips)+' ₪';
   if(document.activeElement!==$('#hours'))$('#hours').value=d.hours||'';
   if(document.activeElement!==$('#goal'))$('#goal').value=g;
-  renderTrips();renderWeek();renderFuel(tot);renderShifts();
+  renderTrips();renderWeek();renderFuel(tot);renderShifts();renderBk();
 }
 
 const toMin=h=>{const a=h.split(':').map(Number);return a[0]*60+a[1]};
@@ -420,6 +429,49 @@ function report(){
 $('#pdf').onclick=()=>{const old=document.title;document.title='הנסיעות-שלי-'+today();print();document.title=old};
 $('#shWa').onclick=()=>window.open('https://wa.me/?text='+encodeURIComponent(report()),'_blank');
 $('#shMail').onclick=()=>{location.href='mailto:?subject='+encodeURIComponent('הנסיעות שלי – '+new Date().toLocaleDateString('he-IL'))+'&body='+encodeURIComponent(report())};
+
+function mkBackup(type){
+  return new File([JSON.stringify(S)],'taxi-backup-'+today()+'.json',{type:type});
+}
+function renderBk(){
+  $('#bkInfo').textContent=S.lastBackup?'גיבוי אחרון: '+new Date(S.lastBackup).toLocaleString('he-IL'):'עוד לא בוצע גיבוי. מומלץ לגבות מדי פעם.';
+}
+function download(f){
+  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+$('#bkDl').onclick=()=>{S.lastBackup=new Date().toISOString();save();download(mkBackup('application/json'));renderBk()};
+async function shareBackup(kind){
+  S.lastBackup=new Date().toISOString();save();renderBk();
+  const msg='גיבוי הנסיעות שלי – '+new Date().toLocaleDateString('he-IL');
+  for(const type of ['application/json','text/plain']){
+    const f=mkBackup(type);
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{await navigator.share({files:[f],title:msg,text:msg});return}catch(e){if(e.name==='AbortError')return}
+    }
+  }
+  const f=mkBackup('application/json');download(f);
+  const note=msg+'\n(צרף את קובץ הגיבוי שהורד: '+f.name+')';
+  if(kind==='wa')window.open('https://wa.me/?text='+encodeURIComponent(note),'_blank');
+  else location.href='mailto:?subject='+encodeURIComponent(msg)+'&body='+encodeURIComponent(note);
+}
+$('#bkWa').onclick=()=>shareBackup('wa');
+$('#bkMail').onclick=()=>shareBackup('mail');
+$('#restore').onclick=()=>$('#rfile').click();
+$('#rfile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const data=JSON.parse(r.result);
+      if(!data||typeof data!=='object'||typeof data.days!=='object')throw 0;
+      if(!confirm('לשחזר מהגיבוי? כל הנתונים הנוכחיים במכשיר יוחלפו.'))return;
+      localStorage.setItem(KEY,JSON.stringify(data));location.reload();
+    }catch(err){alert('הקובץ לא תקין. בחר קובץ גיבוי שנוצר באפליקציה.')}
+  };
+  r.readAsText(f);e.target.value='';
+};
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 
 setView(S.view);resetForm();render();
 </script>
