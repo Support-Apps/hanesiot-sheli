@@ -104,6 +104,7 @@ details .in{padding:4px 0 16px}
   </div>
   <div class="row blk">
     <div><label for="hours">שעות עבודה (ידני, אם אין רישום)</label><input id="hours" type="number" inputmode="decimal" min="0" step="0.25" placeholder="0"></div>
+    <div><label for="wdays">ימי עבודה בשבוע (יעד 15,000 ₪ נטו)</label><select id="wdays"><option value="6">6 ימים – 1,089 ₪ ליום</option><option value="7">7 ימים – 964 ₪ ליום</option></select></div>
     <div><label for="goal">יעד יומי (₪)</label><input id="goal" type="number" inputmode="numeric" min="0"></div>
   </div>
 </section>
@@ -225,15 +226,15 @@ details .in{padding:4px 0 16px}
   <div>
     <h3 style="font-size:16px;margin-bottom:10px">חלוקת המשמרת המומלצת</h3>
     <div class="shift">
-      <div><b>900 ₪</b>משמרת בוקר<br>06:00–12:00</div>
+      <div><b id="shA">580 ₪</b>משמרת בוקר<br>06:00–12:00</div>
       <div class="rest">מנוחה</div>
-      <div><b>812 ₪</b>אחה"כ / ערב<br>14:30–20:00</div>
+      <div><b id="shB">509 ₪</b>אחה"כ / ערב<br>14:30–20:00</div>
     </div>
     <h3 style="font-size:16px;margin:22px 0 10px">תמהיל נסיעות נדרש</h3>
     <ul class="mix">
-      <li><b>2–3</b> נסיעות ארוכות / נתב"ג: 500–600 ₪</li>
-      <li><b>10–12</b> נסיעות Gett / מונה: 700–800 ₪</li>
-      <li><b>6–8</b> נסיעות קצרות: 300–350 ₪</li>
+      <li><b>1–2</b> נסיעות ארוכות / נתב"ג: 300–400 ₪</li>
+      <li><b>7–9</b> נסיעות Gett / מונה: 420–480 ₪</li>
+      <li><b>5–6</b> נסיעות קצרות: 200–230 ₪</li>
     </ul>
   </div>
   <div>
@@ -251,11 +252,11 @@ details .in{padding:4px 0 16px}
 </div>
 
 <script>
-const $=s=>document.querySelector(s), KEY='taxi_manager_v1', DAYS=26, DN=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳'];
+const $=s=>document.querySelector(s), KEY='taxi_manager_v1', DN=['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ש׳'], GOALS={6:1089,7:964}, MDAYS={6:26,7:30}; let DAYS=26;
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 S=S||{};
-S.goal=S.goal||1712; S.days=S.days||{}; S.fuel=S.fuel||{km:200,kpl:12,price:7.5}; S.view=S.view||(innerWidth>=900?'desktop':'mobile');
+S.wd=S.wd||6; if(!S.goal||[1712,734,636].includes(S.goal))S.goal=GOALS[S.wd]; DAYS=MDAYS[S.wd]; S.days=S.days||{}; S.fuel=S.fuel||{km:200,kpl:12,price:7.5}; S.view=S.view||(innerWidth>=900?'desktop':'mobile');
 let editId=null;
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const fmt=n=>Math.round(n).toLocaleString('he-IL');
@@ -334,7 +335,7 @@ $('#add').onclick=()=>{
 function renderWeek(){
   const now=new Date(), start=new Date(now.getFullYear(),now.getMonth(),now.getDate()-now.getDay());
   let ga=0,aa=0,rows='';
-  for(let i=0;i<6;i++){
+  for(let i=0;i<S.wd;i++){
     const dt=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i), k=keyOf(dt), d=day(k), a=sum(d), diff=a-S.goal;
     const future=dt>now&&k!==today();
     ga+=S.goal;aa+=a;
@@ -350,6 +351,8 @@ $('#wb').addEventListener('change',e=>{
 });
 
 $('#hours').oninput=e=>{ensure(today()).hours=num(e.target.value);save();render()};
+$('#wdays').value=S.wd;$('#wdays').onchange=e=>{S.wd=+e.target.value;S.goal=GOALS[S.wd];DAYS=MDAYS[S.wd];save();render();shiftTxt()};
+const shiftTxt=()=>{const a=S.wd==7?[520,444]:[580,509];$('#shA').textContent=a[0]+' ₪';$('#shB').textContent=a[1]+' ₪'};shiftTxt();
 $('#goal').onchange=e=>{const v=num(e.target.value);if(v>0){S.goal=v;save();render()}};
 
 function fuelCalc(d){
